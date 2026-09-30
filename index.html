@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Formula 1 Results</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@400;600;700&display=swap"
+        rel="stylesheet" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏁</text></svg>" />
+    <style>
+        :root {
+            --bg: #0f0f12;
+            --panel: #17171c;
+            --panel-2: #1f1f26;
+            --text: #f2f2f2;
+            --muted: #8a8a94;
+            --line: #2a2a33;
+            --red: #e10600;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: "Titillium Web",
+                system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            height: 100vh;
+            display: flex;
+            justify-content:
+                center;
+            align-items: center;
+            padding: 3rem 1rem;
+        }
+
+        #container {
+            width: 100%;
+            max-width: 900px;
+            display: flex;
+            flex-direction: column;
+            background: var(--panel);
+            border: 1px solid var(--line);
+        }
+
+        /* Header bar */
+        #header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem 1.5rem;
+            background: #000;
+            border-bottom: 3px solid var(--red);
+        }
+
+        #header .stripe {
+            width: 6px;
+            height: 28px;
+            background: var(--red);
+            transform:
+                skewX(-20deg);
+        }
+
+        #header h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing:
+                0.08em;
+        }
+
+        #header .sub {
+            margin-left: auto;
+            font-size: 0.75rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        /* Messages area with checkered border */
+        #messages {
+            overflow-y: auto;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            min-height: 450px;
+            max-height: 70vh;
+            border: 8px solid transparent;
+            background: linear-gradient(var(--panel), var(--panel)) padding-box, conic-gradient(#000 25%, #fff 0 50%, #000 0 75%, #fff 0) 0 0 / 8px 8px border-box;
+        }
+
+        .msg {
+            line-height: 1.5;
+            max-width: 80%;
+        }
+
+        .msg.user {
+            align-self: flex-end;
+            text-align: right;
+        }
+
+        .msg.user .content {
+            display: inline-block;
+            background:
+                var(--panel-2);
+            padding: 0.5rem 0.9rem;
+            border-right: 3px solid var(--red);
+        }
+
+        .msg .role {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--muted);
+            margin-bottom:
+                0.25rem;
+        }
+
+        .msg.assistant .role {
+            color: var(--red);
+        }
+
+        .msg.loading .content {
+            color: var(--muted);
+        }
+
+        /* Input
+        area */
+        #input-area {
+            display: flex;
+            gap: 1rem;
+            padding: 1.5rem;
+        }
+
+        #user-input {
+            flex: 1;
+            padding: 0.75rem 0;
+            background: transparent;
+            color: var(--text);
+            border: none;
+            border-bottom: 1px solid var(--line);
+            font: inherit;
+            font-size: 1rem;
+            outline: none;
+        }
+
+        #user-input::placeholder {
+            color: var(--muted);
+        }
+
+        #user-input:focus {
+            border-bottom-color: var(--red);
+        }
+
+        button {
+            padding: 0.75rem 1.5rem;
+            background: var(--red);
+            color: #fff;
+            border: none;
+            font-family: inherit;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            cursor: pointer;
+        }
+
+        button:hover:not(:disabled) {
+            background: #ff2a1f;
+        }
+
+        button:disabled {
+            opacity: 0.3;
+        }
+
+        /* Tool calls */
+        .tool {
+            font-family: ui-monospace, monospace;
+            font-size: 0.75rem;
+            color:
+                #c8c8d0;
+            background: var(--panel-2);
+            border-left: 3px solid var(--red);
+            padding: 0.5rem 0.75rem;
+            margin: 0.25rem 0 0.75rem;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .tool .label {
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--red);
+        }
+    </style>
+</head>
+
+<body>
+    <div id="container">
+        <header id="header">
+            <span class="stripe"></span>
+            <h1>F1 Results Agent</h1>
+        </header>
+        <div id="messages"></div>
+        <div id="input-area">
+            <input type="text" id="user-input" placeholder="Type a message..." autocomplete="off" />
+            <button id="send-btn">Send</button>
+        </div>
+    </div>
+    <script>
+        const messages = document.getElementById("messages");
+        const userInput = document.getElementById("user-input");
+        const sendBtn = document.getElementById("send-btn");
+        let sessionId = null;
+
+        // NEW: loading messages, one picked at random
+        const LOADING_MESSAGES = [
+            "Box, box...",
+            "Checking the timing screens...",
+            "Talking to the pit wall...",
+            "Warming up the tyres...",
+            "Reviewing the telemetry...",
+            "Waiting for the stewards...",
+        ];
+
+        function randomLoading() {
+            return LOADING_MESSAGES[Math.floor(Math.random() * LOADING_MESSAGES.length)];
+        }
+
+        const ROLE_LABELS = { you: "🏎️ You", assistant: "🧑‍🔧 Assistant" };
+
+        function addMessage(role, text, isLoading = false) {
+            const div = document.createElement("div");
+            div.className =
+                "msg " +
+                (role === "you" ? "user" : "assistant") +
+                (isLoading ? " loading" : "");
+            div.innerHTML =
+                '<div class="role">' +
+                (ROLE_LABELS[role] || role) +
+                '</div><div class="content">' +
+                text +
+                "</div>";
+            messages.appendChild(div);
+            messages.scrollTop = messages.scrollHeight;
+            return div;
+        }
+
+        async function send() {
+            const text = userInput.value.trim();
+            if (!text) return;
+
+            userInput.value = "";
+            sendBtn.disabled = true;
+            addMessage("you", text);
+
+            // NEW: random loading message that changes every 2 seconds
+            const loading = addMessage("assistant", randomLoading(), true);
+            const ticker = setInterval(() => {
+                loading.querySelector(".content").textContent = randomLoading();
+            }, 3000);
+
+            try {
+                const res = await fetch("/chat", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        message: text,
+                        session_id: sessionId,
+                    }),
+                });
+                const data = await res.json();
+                sessionId = data.session_id;
+
+                // Show each tool the harness ran, above the assistant's answer
+                for (const call of data.tool_calls || []) {
+                    const div = document.createElement("div");
+                    div.className = "tool";
+                    const label = document.createElement("span");
+                    label.className = "label";
+                    label.textContent = "tool call  ";
+                    div.appendChild(label);
+                    div.appendChild(
+                        document.createTextNode(
+                            call.name + "(" + JSON.stringify(call.args) + ")\n→ " + call.result,
+                        ),
+                    );
+                    messages.insertBefore(div, loading);
+                }
+                loading.querySelector(".content").textContent =
+                    data.response;
+                loading.classList.remove("loading");
+            } catch (e) {
+                loading.querySelector(".content").textContent =
+                    "Error: " + e.message;
+                loading.classList.remove("loading");
+            } finally {
+                clearInterval(ticker); // NEW: stop rotating messages
+            }
+            sendBtn.disabled = false;
+            userInput.focus();
+        }
+
+        sendBtn.addEventListener("click", send);
+        userInput.addEventListener("keydown", function (e) {
+            if (e.key === "Enter") send();
+        });
+        userInput.focus();
+    </script>
+</body>
+
+</html>
