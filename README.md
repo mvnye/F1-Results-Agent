@@ -1,7 +1,7 @@
 # F1 Results Agent
 
-A web chat agent for Formula 1 fans who want quick, accurate answers about the
-current season: the latest results, the standings, and who can still win the title.
+A web chat agent for Formula 1 fans who want quick answers about the
+the latest results, the current season's standings, and who can still win the title.
 
 
 ## Tools
