@@ -128,6 +128,26 @@
             color: var(--red);
         }
 
+        .msg .caps { margin: 0.5rem 0 0.75rem 1.1rem; }
+        .msg .caps li { margin: 0.2rem 0; }
+        .msg .caps b { color: var(--text); }
+        .msg .try { color: var(--muted); font-size: 0.85rem; }
+        .chips { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.4rem; }
+        .chip {
+            background: var(--panel-2);
+            color: var(--text);
+            border: 1px solid var(--line);
+            border-left: 3px solid var(--red);
+            padding: 0.4rem 0.75rem;
+            font: inherit;
+            font-size: 0.85rem;
+            text-transform: none;
+            letter-spacing: normal;
+            font-weight: 400;
+            cursor: pointer;
+        }
+        .chip:hover { border-color: var(--red); }
+
         .msg.loading .content {
             color: var(--muted);
         }
@@ -313,6 +333,31 @@
         userInput.addEventListener("keydown", function (e) {
             if (e.key === "Enter") send();
         });
+        // Greeting shown on page load (display only, not sent to the model)
+        const EXAMPLES = [
+            "Who won the last race?",
+            "Show me the constructors' standings",
+            "When is the earliest Mercedes can clinch the title?",
+            "When's the next race?",
+        ];
+        const welcome = addMessage(
+            "assistant",
+            "<p>Welcome to the pit wall! I'm your F1 race engineer, with live data for the current season:</p>" +
+            "<ul class='caps'>" +
+            "<li><b>Latest results</b> from the most recent Grand Prix or sprint</li>" +
+            "<li><b>Standings</b> for drivers and constructors</li>" +
+            "<li><b>Title math</b>: who can still win, and the earliest race they could clinch</li>" +
+            "<li><b>Next race</b>: where, when, and whether it's a sprint weekend</li>" +
+            "</ul><p class='try'>Try one:</p><div class='chips'></div>"
+        );
+        const chips = welcome.querySelector(".chips");
+        for (const q of EXAMPLES) {
+            const b = document.createElement("button");
+            b.className = "chip";
+            b.textContent = q;
+            b.addEventListener("click", () => { userInput.value = q; send(); });
+            chips.appendChild(b);
+        }
         userInput.focus();
     </script>
 </body>

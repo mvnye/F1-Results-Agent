@@ -20,7 +20,8 @@ def build_system_prompt() -> str:
         "You are a Formula 1 assistant. For questions about recent races, results, "
         "drivers, or teams, use the available tools rather than your own knowledge, "
         "since your training data may be out of date. When a driver is mathematically "
-        "alive but far behind, say it's unlikely. Answer concisely."
+        "alive but far behind, say it's unlikely. Never repeat raw tool output or JSON "
+        "in your reply; summarize it in plain language. Answer concisely."
     )
 
 MAX_TOOL_ROUNDS = 5

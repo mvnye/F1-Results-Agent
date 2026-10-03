@@ -137,8 +137,8 @@ def can_win_championship(driver: str | None = None, team: str | None = None) -> 
     if mask.sum() > 1 and driver:
         q = _norm(driver)
         exact = df.apply(lambda r: q in (_norm(r.driverCode), _norm(r.familyName)), axis=1)
-    if exact.sum() == 1:
-        mask = exact
+        if exact.sum() == 1:
+            mask = exact
     if mask.sum() > 1:
         return json.dumps({"error": f"Ambiguous name, matches: {names[mask].tolist()}. Be more specific."})
     me = df[mask].iloc[0]
