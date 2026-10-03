@@ -13,18 +13,11 @@ the latest results, the current season's standings, and who can still win the ti
 | `can_win_championship` | Whether a driver or team can still win (or has already clinched the title), what they need at the next round, and the earliest race they could win at |
 | `get_next_race` | The next race: circuit, location, date, days until it, and whether it's a sprint weekend |
 
-All data comes from the Ergast/Jolpica F1 API via [FastF1](https://docs.fastf1.dev/).
-
+All data comes from the Ergast/Jolpica F1 API via FastF1. 
 ## Sample questions
 
 - "When is the earliest Mercedes can clinch the constructors' title?"
 - "How did Ferrari do in the last race?"
 - "When's the next race, and is it a sprint weekend?"
-
-## Setup
-
-1. A GCP project with billing and the Vertex AI API enabled.
-2. `gcloud auth application-default login`
-3. `uv run app.py`, then open http://localhost:8000
 
 
