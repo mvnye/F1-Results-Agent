@@ -10,7 +10,7 @@ the latest results, the current season's standings, and who can still win the ti
 | --- | --- |
 | `get_last_race_results` | Results of the most recent Grand Prix or sprint, optionally filtered by driver or team |
 | `get_standings` | Current drivers' or constructors' championship standings |
-| `can_win_championship` | Whether a driver or team can still win (or has already clinched the title), what they need at the next round, and the earliest race they could clinch |
+| `can_win_championship` | Whether a driver or team can still win (or has already clinched the title), what they need at the next round, and the earliest race they could win at |
 | `get_next_race` | The next race: circuit, location, date, days until it, and whether it's a sprint weekend |
 
 All data comes from the Ergast/Jolpica F1 API via [FastF1](https://docs.fastf1.dev/).
