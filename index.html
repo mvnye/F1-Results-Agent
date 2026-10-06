@@ -297,6 +297,9 @@
                         session_id: sessionId,
                     }),
                 });
+                if (!res.ok) {
+                    throw new Error("the server hit a problem (" + res.status + "). Please try again.");
+                }
                 const data = await res.json();
                 sessionId = data.session_id;
 

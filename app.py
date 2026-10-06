@@ -52,7 +52,7 @@ def run_agent(messages: list[dict]) -> tuple[str, list[dict]]:
         messages += [reply.model_dump()]
 
         if not reply.tool_calls:
-            return reply.content, tool_calls
+            return reply.content or "Sorry, I came back empty there. Could you ask that again?", tool_calls
 
         # The harness, not the model, runs each tool and appends the result
         for call in reply.tool_calls:
