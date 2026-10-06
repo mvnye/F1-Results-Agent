@@ -180,10 +180,31 @@ def can_win_championship(driver: str | None = None, team: str | None = None) -> 
         nxt = remaining.iloc[0]
         max_next = pts["gp"] + (pts["sprint"] if pd.notna(nxt["sprintDate"]) else 0)
         margin_needed = max_available - max_next - lead
+        can_clinch = margin_needed < max_next
+        rival_name = names[~mask].iloc[0]
+        me_name = names[mask].iloc[0]
+        if not can_clinch:
+            explanation = (
+                f"{me_name} cannot clinch at the {nxt['raceName']}: they would need to outscore "
+                f"{rival_name} by more than {margin_needed:g} points there, but the most possible "
+                f"in that weekend is {max_next:g}."
+            )
+        elif margin_needed >= 0:
+            explanation = (
+                f"{me_name} clinches at the {nxt['raceName']} if they outscore {rival_name} "
+                f"by more than {margin_needed:g} points there (the most possible is {max_next:g})."
+            )
+        else:
+            explanation = (
+                f"{me_name} clinches at the {nxt['raceName']} unless {rival_name} outscores them "
+                f"by {-margin_needed:g} points or more there."
+            )
         result["next_round"] = {
             **_round_info(nxt),
-            "can_clinch_here": margin_needed < max_next,
+            "can_clinch_here": can_clinch,
             "must_outscore_rival_by_more_than": margin_needed,
+            "max_possible_outscore_here": max_next,
+            "explanation": explanation,
         }
 
         result["earliest_clinch_best_case"] = _earliest_clinch(
@@ -191,6 +212,11 @@ def can_win_championship(driver: str | None = None, team: str | None = None) -> 
         )
         result["earliest_clinch_if_rival_finishes_second"] = _earliest_clinch(
             my_points, rival_points, remaining, pts, rival_scores_second=True
+        )
+        result["earliest_clinch_assumptions"] = (
+            "best_case: they score the maximum every remaining session and the rival scores nothing. "
+            "if_rival_finishes_second: they score the maximum and the rival takes the next-best result "
+            "every session. null means it cannot happen under that scenario."
         )
 
     result["can_still_win"] = result["status"] != "eliminated"
@@ -273,9 +299,10 @@ TOOLS = [
         "name": "can_win_championship",
         "description": (
             "Check a Formula 1 driver's or team's championship chances this season: whether "
-            "they can still win or have clinched, what they need at the next round to clinch "
-            "it, and the earliest round (with location) they could clinch. Pass exactly one "
-            "of driver or team."
+            "they can still win or have clinched, how many points they must outscore their "
+            "closest rival by at the next round to clinch it, and the earliest round (with "
+            "location) they could clinch. Use this for any question about title maths, "
+            "clinching, or points margins needed. Pass exactly one of driver or team."
 ),
         "parameters": {
             "type": "object",
