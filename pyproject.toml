@@ -1,7 +1,7 @@
 [project]
 name = "Formula-1-Results"
 version = "0.1.0"
-description = "qwen-tool-calling behind a web server: FastAPI + LiteLLM + Gemini, with tool calls shown in the UI"
+description = "F1 season agent: chat about the latest results, standings, title math and next race, with tool calls shown in the UI"
 requires-python = ">=3.10"
 dependencies = [
     "fastapi>=0.109.0",
