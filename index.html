@@ -297,10 +297,28 @@
                         session_id: sessionId,
                     }),
                 });
+                // Read as text first so a non-JSON reply (e.g. the Google
+                // sign-in proxy rejecting an expired session) can't crash parsing.
+                const raw = await res.text();
+                const sessionExpired =
+                    res.status === 401 || res.status === 403 || raw.startsWith("Invalid IAP");
+                if (sessionExpired) {
+                    loading.querySelector(".content").textContent =
+                        "Your sign-in session expired. Reloading so you can sign in again...";
+                    loading.classList.remove("loading");
+                    clearInterval(ticker);
+                    setTimeout(() => window.location.reload(), 1500);
+                    return;
+                }
                 if (!res.ok) {
                     throw new Error("the server hit a problem (" + res.status + "). Please try again.");
                 }
-                const data = await res.json();
+                let data;
+                try {
+                    data = JSON.parse(raw);
+                } catch {
+                    throw new Error("the server sent an unexpected reply. Please reload the page and try again.");
+                }
                 sessionId = data.session_id;
 
                 // Show each tool the harness ran, above the assistant's answer
