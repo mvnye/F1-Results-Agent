@@ -22,8 +22,11 @@ def build_system_prompt() -> str:
         "since your training data may be out of date. When a driver is mathematically "
         "alive but far behind, say it's unlikely. Never calculate championship points, "
         "margins, or clinch scenarios yourself: use the numbers and explanation returned by "
-        "can_win_championship, and call it again if you need them. Never repeat raw tool output or JSON "
-        "in your reply; summarize it in plain language. Answer concisely."
+        "can_win_championship, and call it again if you need them. When asked where drivers must "
+        "finish for someone to clinch, answer only from the ways_to_clinch list in its result; "
+        "never work out finishing positions yourself. Never repeat raw tool output or JSON "
+        "in your reply; summarize it in plain language. Write plain text only: no markdown, "
+        "no asterisks, no bold, no headings. Answer concisely."
     )
 
 MAX_TOOL_ROUNDS = 5

@@ -71,6 +71,48 @@ def _earliest_clinch(my_pts, rival_pts, remaining, pts, rival_scores_second) -> 
             return _round_info(r)
     return None
 
+GP_POINTS = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1]
+# (finishing position, points); None = outside the points or did not finish
+_FINISHES = [(i + 1, p) for i, p in enumerate(GP_POINTS)] + [(None, 0)]
+
+def _ordinal(n: int) -> str:
+    suffix = "th" if 11 <= n % 100 <= 13 else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+    return f"{n}{suffix}"
+
+def _finish_text(pos) -> str:
+    return f"finishes {_ordinal(pos)}" if pos else "finishes outside the points"
+
+def _clinch_scenarios(me, my_pts, left_after, contenders) -> list[str]:
+    """For a non-sprint weekend: spell out where the driver must finish, and how low each
+    driver still in contention must finish, for the driver to clinch the title there.
+    `contenders` holds (name, points) for every other driver who could still catch them."""
+    lines, anywhere = [], None
+    for pos, pts in _FINISHES:
+        needs, possible = [], True
+        for name, c_pts in contenders:
+            # They must score fewer than this many points this weekend
+            limit = (my_pts + pts) - left_after - c_pts
+            options = [(q, p) for q, p in _FINISHES if pos is None or q != pos]
+            ok = [q for q, p in options if p < limit]
+            if not ok:
+                possible = False
+                break
+            if len(ok) < len(options):  # only a real requirement if some finishes are ruled out
+                worst = min((q for q in ok if q), default=None)
+                needs.append(f"{name} {_finish_text(worst)}" + (" or lower" if worst else ""))
+        if not possible:
+            continue
+        mine = "wins" if pos == 1 else _finish_text(pos)
+        if not needs:
+            anywhere = f"{me} {mine}" + (" or higher" if pos != 1 else "") \
+                + ": clinches wherever everyone else finishes"
+            continue
+        lines.append(f"{me} {mine} and " + " and ".join(needs))
+    # The worst finish that clinches regardless covers every better finish too
+    if anywhere:
+        lines.insert(0, anywhere)
+    return lines
+
 def _date(x):
     """Format a schedule date, or None if the session doesn't exist."""
     return str(x)[:10] if pd.notna(x) else None
@@ -206,6 +248,16 @@ def can_win_championship(driver: str | None = None, team: str | None = None) -> 
             "max_possible_outscore_here": max_next,
             "explanation": explanation,
         }
+        # Driver title on a non-sprint weekend: spell out the exact finishing positions,
+        # so the model never has to work out "who must finish where" itself.
+        if driver and can_clinch and pd.isna(nxt["sprintDate"]):
+            contenders = [
+                (n, float(p)) for n, p, m in zip(names, df["points"], mask)
+                if not m and float(p) + max_available >= my_points
+            ]
+            result["next_round"]["ways_to_clinch"] = _clinch_scenarios(
+                me_name, my_points, max_available - max_next, contenders
+            )
 
         result["earliest_clinch_best_case"] = _earliest_clinch(
             my_points, rival_points, remaining, pts, rival_scores_second=False
@@ -301,8 +353,10 @@ TOOLS = [
             "Check a Formula 1 driver's or team's championship chances this season: whether "
             "they can still win or have clinched, how many points they must outscore their "
             "closest rival by at the next round to clinch it, and the earliest round (with "
-            "location) they could clinch. Use this for any question about title maths, "
-            "clinching, or points margins needed. Pass exactly one of driver or team."
+            "location) they could clinch. For a driver who can clinch at the next round, it "
+            "also lists the exact finishing positions needed (ways_to_clinch). Use this for any "
+            "question about title maths, clinching, points margins, or where drivers need to "
+            "finish. Pass exactly one of driver or team."
 ),
         "parameters": {
             "type": "object",
