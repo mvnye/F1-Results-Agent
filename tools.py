@@ -82,18 +82,22 @@ def _ordinal(n: int) -> str:
 def _finish_text(pos) -> str:
     return f"finishes {_ordinal(pos)}" if pos else "finishes outside the points"
 
-def _clinch_scenarios(me, my_pts, left_after, contenders) -> list[str]:
+def _clinch_scenarios(me, my_pts, my_wins, left_after, races_after, contenders) -> list[str]:
     """For a non-sprint weekend: spell out where the driver must finish, and how low each
     driver still in contention must finish, for the driver to clinch the title there.
-    `contenders` holds (name, points) for every other driver who could still catch them."""
+    `contenders` holds (name, points, wins) for every other driver who could still catch them.
+    A tie on points still clinches if the driver would have more race wins than the other
+    driver could reach, since race wins are the first tie-break."""
     lines, anywhere = [], None
     for pos, pts in _FINISHES:
         needs, possible = [], True
-        for name, c_pts in contenders:
+        for name, c_pts, c_wins in contenders:
             # They must score fewer than this many points this weekend
             limit = (my_pts + pts) - left_after - c_pts
             options = [(q, p) for q, p in _FINISHES if pos is None or q != pos]
-            ok = [q for q, p in options if p < limit]
+            # To tie, they would need to win every remaining race too
+            ok = [q for q, p in options
+                  if p < limit or (p == limit and my_wins + (pos == 1) > c_wins + (q == 1) + races_after)]
             if not ok:
                 possible = False
                 break
@@ -222,7 +226,14 @@ def can_win_championship(driver: str | None = None, team: str | None = None) -> 
         nxt = remaining.iloc[0]
         max_next = pts["gp"] + (pts["sprint"] if pd.notna(nxt["sprintDate"]) else 0)
         margin_needed = max_available - max_next - lead
-        can_clinch = margin_needed < max_next
+        # Race wins are the first tie-break. If the driver wins here (needed when the margin
+        # is bigger than a 2nd place could give), a tie on points still goes their way when
+        # the rival can't reach their win count even by winning every remaining race.
+        wins_tie_break = bool(
+            driver and pd.isna(nxt["sprintDate"]) and margin_needed > pts["rival_gp"]
+            and int(me["wins"]) + 1 > int(rival["wins"]) + len(remaining) - 1
+        )
+        can_clinch = margin_needed < max_next or (wins_tie_break and margin_needed == max_next)
         rival_name = names[~mask].iloc[0]
         me_name = names[mask].iloc[0]
         if not can_clinch:
@@ -234,7 +245,10 @@ def can_win_championship(driver: str | None = None, team: str | None = None) -> 
         elif margin_needed >= 0:
             explanation = (
                 f"{me_name} clinches at the {nxt['raceName']} if they outscore {rival_name} "
-                f"by more than {margin_needed:g} points there (the most possible is {max_next:g})."
+                + (f"by at least {margin_needed:g} points there (a tie on points would go to "
+                   f"{me_name} on race wins; the most possible is {max_next:g})."
+                   if wins_tie_break else
+                   f"by more than {margin_needed:g} points there (the most possible is {max_next:g}).")
             )
         else:
             explanation = (
@@ -244,7 +258,8 @@ def can_win_championship(driver: str | None = None, team: str | None = None) -> 
         result["next_round"] = {
             **_round_info(nxt),
             "can_clinch_here": can_clinch,
-            "must_outscore_rival_by_more_than": margin_needed,
+            ("must_outscore_rival_by_at_least" if wins_tie_break
+             else "must_outscore_rival_by_more_than"): margin_needed,
             "max_possible_outscore_here": max_next,
             "explanation": explanation,
         }
@@ -252,11 +267,12 @@ def can_win_championship(driver: str | None = None, team: str | None = None) -> 
         # so the model never has to work out "who must finish where" itself.
         if driver and can_clinch and pd.isna(nxt["sprintDate"]):
             contenders = [
-                (n, float(p)) for n, p, m in zip(names, df["points"], mask)
+                (n, float(p), int(w)) for n, p, w, m in zip(names, df["points"], df["wins"], mask)
                 if not m and float(p) + max_available >= my_points
             ]
             result["next_round"]["ways_to_clinch"] = _clinch_scenarios(
-                me_name, my_points, max_available - max_next, contenders
+                me_name, my_points, int(me["wins"]), max_available - max_next,
+                len(remaining) - 1, contenders
             )
 
         result["earliest_clinch_best_case"] = _earliest_clinch(
